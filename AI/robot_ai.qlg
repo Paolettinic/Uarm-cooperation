@@ -1,0 +1,273 @@
+%% Copyright 2017 Keith Clark, Peter Robinson
+%%
+%% Licensed under the Apache License, Version 2.0 (the "License");
+%% you may not use this file except in compliance with the License.
+%% You may obtain a copy of the License at
+%%
+%%     http://www.apache.org/licenses/LICENSE-2.0
+%%
+%% Unless required by applicable law or agreed to in writing, software
+%% distributed under the License is distributed on an "AS IS" BASIS,
+%% WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+%% See the License for the specific language governing permisions and
+%% limitations under the License.
+
+% Multi resource multi-tasking program from Chapter 9
+% of Programming Multi-tasking Robotic Agents in Teleor
+% Uses vrep_pedro.py
+
+
+% To run:
+% In one terminal:
+% python vrep_pedro.py
+% In another terminal:
+% teleor -Atowers
+% In interpreter:
+% consult bookTowersChap9.
+% go().
+
+% In the simulation press the space bar and then drag blocks around - press
+% the space again to continue.
+
+def arm ::= arm1 | arm2
+def table ::= table1 | shared | table2
+def block ::= (1 .. 6)
+
+def loc == table || block
+
+fun other(arm) -> arm
+other(arm1) -> arm2
+other(arm2) -> arm1
+
+percept holding(arm, block), on(block, block),
+    on_table(block,table), over_home(arm), tracking(arm)
+
+def durative ::= pickup(arm, block, table) | put_on_table(arm, table) |
+        put_on_block(arm,block,table)
+
+resources  arm, table
+
+def resources_message_ ::= locked_resources(term) | waiting_resources(term)
+
+resources_hook() ::
+    get_active_resources(Resources) &
+    get_waiting_resources(WResources)
+        ~>
+            locked_resources(Resources) to vrep_pedro ;
+            waiting_resources(WResources) to vrep_pedro
+% Called by evaluator, when defined, to send info to the simulator
+
+rel tower(list(block), ?table)
+tower([B,..Bs],Tbl) <= not on(_,B) & stack([B,..Bs],Tbl)
+
+rel clear(block)
+clear(B) <= not holding(_,B) & not on(_,B)
+
+rel stack(?list(block),?table)
+stack([B], T) :: on_table(B,T)
+stack([B1,B2|Bs], T) :: on(B1, B2) & stack([B2|Bs], T)
+
+fun home_table(arm) -> table
+home_table(arm1) -> table1
+home_table(arm2) -> table2
+
+rel can_reach_block(arm,block,?table)
+can_reach_block(Arm,Block,Tab) <=
+    somewhere_on(Block,Tab) & can_reach_table(Arm,Tab)
+
+rel can_reach_table(arm,?table)
+can_reach_table(_Arm,shared)
+can_reach_table(Arm,Tab) <= Tab=home_table(Arm)
+
+
+rel somewhere_on(block,?table)
+somewhere_on(Block,Tab) :: on_table(Block,Tab)
+somewhere_on(Block,Tab) <=
+    on(Block,BellowBlock) & somewhere_on(BellowBlock,Tab)
+
+
+task_atomic move_to_block(arm,block,table,block,table)
+move_to_block(Arm,Block,BlockTab,ToBlock,TowerTab){
+    % Procedure will only be called when Block somewhere on BlockTab
+    % or held by Arm. Only active while ToBlock somewhere on TowerTab, and clear
+    on(Block,ToBlock) ~> ()
+    holding(Arm,Block) ~>
+        put_on_block(Arm,ToBlock,TowerTab)
+    clear(Block) & not holding(Arm,_) ~>
+        pickup(Arm,Block,BlockTab)
+    on(_,Block) & not holding(Arm,_)
+        while holding(Arm,_) ~>
+                unpile_C(Arm,Block,BlockTab,TowerTab)
+    holding(Arm,OtherBlock) &
+    needed_by_task_using(OtherBlock,TowerTab,Loc) ~>
+        put_on_location(Arm,TowerTab,Loc)
+
+    holding(Arm,_) ~> put_on_table(Arm,BlockTab)
+    }
+
+
+tel put_on_location(arm,table,loc)
+put_on_location(Arm,Table,Loc){
+    Loc = Table ~> put_on_table(Arm,Table)
+    type(Loc,block) ~> put_on_block(Arm,Loc,Table)
+    }
+
+task_atomic move_to_table(arm,block,table,table)
+move_to_table(Arm,Block,BlockTab,Tab){
+    % Procedure will only be called when Block somewhere
+    % on BlockTab or held by Arm
+    on_table(Block,Tab) ~> ()
+
+    holding(Arm,Block) ~>
+        put_on_table(Arm,Tab)
+    clear(Block) & not holding(Arm,_)  ~>
+        pickup(Arm,Block, BlockTab)
+    on(_,Block) & not holding(Arm,_)
+        while holding(Arm,_) ~>
+                unpile_C(Arm,Block,BlockTab,Tab)
+    holding(Arm,OtherBlock) &
+    needed_by_task_using(OtherBlock,Tab,Loc) ~>
+        put_on_location(Arm,Tab,Loc)
+    holding(Arm,_) ~>
+        put_on_table(Arm,BlockTab)
+    }
+
+tel unpile(arm,block,table)
+unpile(Arm,Block,BlockTab){
+    clear(Block) ~> ()
+    on(OnBlock,Block) ~>
+        move_to_table(Arm,OnBlock,BlockTab,BlockTab)
+    }
+
+task_start makeTower(arm,list(block),table)
+makeTower(Arm,Blocks,TowerTab){
+    tower(Blocks,TowerTab) ~> ()
+    stack(Blocks,TowerTab) &
+    Blocks = [Block,.._Rest]
+        until not holding(Arm,_) ~>
+                unpile_C(Arm,Block,TowerTab,TowerTab)
+    Blocks = [Block, TopBlock,..Rest] &
+    tower([TopBlock,..Rest],TowerTab) ~>
+        move_across_to_block(Arm,Block,TopBlock,TowerTab)
+    Blocks=[Block] ~>
+        move_across_to_table(Arm,Block,TowerTab)
+    Blocks = [_,..Rest] ~> makeTower(Arm,Rest,TowerTab)
+    }
+
+tel move_across_to_table(arm,block,table)
+move_across_to_table(Arm,Block,Tab){
+    on_table(Block,Tab) ~> ()
+    can_reach_block(Arm,Block,BlockTab) &
+    safe_to_try_to_use(Arm,BlockTab)
+        while holding(Arm,Block) ~>
+                move_to_table(Arm,Block,BlockTab,Tab)
+    holding(Arm,Block) ~>
+        move_to_table(Arm,Block,Tab,Tab)
+    on_home_table_or_holding(other(Arm),Block) &
+    safe_to_try_to_use(other(Arm),shared)  ~>
+        move_to_table(other(Arm),Block,home_table(other(Arm)),shared)
+    % Move it to shared} table to be reachable by Arm
+    true ~> ()  % Wait for shared to be safe to use
+    }
+
+rel on_home_table_or_holding(arm,block)
+on_home_table_or_holding(Arm,Block) <=
+    somewhere_on(Block,home_table(Arm))
+on_home_table_or_holding(Arm,Block) <=
+    holding(Arm,Block)
+
+tel move_across_to_block(arm,block,block,table)
+move_across_to_block(Arm,Block,ToBlock,TowerTab){
+    % Will only be active whilst ToBlock is on TowerTab and clear
+    on(Block,ToBlock) ~> ()
+    can_reach_block(Arm,Block,BlockTab) &
+    safe_to_try_to_use(Arm,BlockTab)
+        while holding(Arm,Block) ~>
+                move_to_block(Arm,Block,BlockTab,ToBlock,TowerTab)
+    holding(Arm,Block) ~>
+        move_to_block(Arm,Block,TowerTab,ToBlock,TowerTab)
+    on_home_table_or_holding(other(Arm),Block) &
+    safe_to_try_to_use(other(Arm),shared) ~>
+        move_to_table(other(Arm),Block,home_table(other(Arm)),shared)
+    % Move it to shared table to be reachable by Arm
+    true ~> ()
+    }
+
+rel safe_to_try_to_use(arm,table)
+safe_to_try_to_use(_, Table) :: Table \= shared
+safe_to_try_to_use(Arm,shared) :: over_home(other(Arm))
+safe_to_try_to_use(Arm,shared) <= tracking(other(Arm))
+
+fun other_table(table) -> table
+other_table(table1) -> table2
+other_table(table2) -> table1
+
+tel unpile_C(arm,block,table,table)
+unpile_C(Arm,Block,BlockTab,ToTab){
+
+    clear(Block)  ~> ()
+
+    BlockTab=shared & ToTab\=shared &        % 1st Co-op Rule
+    on(OnBlock,Block) &
+    needed_by_task_using(OnBlock,ToTab,Loc)
+        while_not_until not holding(Arm,OnBlock) ~>
+                move_to_location(Arm,OnBlock,BlockTab,Loc,ToTab)
+
+    ToTab=shared & BlockTab\=shared &      % 2nd Co-op Rule
+    on(OnBlock,Block) &
+    needed_by_task_using(OnBlock,other_table(BlockTab),_)
+        while_not_until not holding(Arm,OnBlock) ~>
+                move_to_table(Arm,OnBlock,BlockTab,ToTab)
+
+    BlockTab \= shared & BlockTab=ToTab &        % 3rd Co-op Rule
+    on(OnBlock,Block) &
+    needed_by_task_using(OnBlock,BlockTab,Loc)
+        while_not_until not holding(Arm,OnBlock)  ~>
+                move_to_location(Arm,OnBlock,BlockTab,Loc,BlockTab)
+
+    on(OnBlock,Block) & clear(OnBlock)
+        while_not_until not holding(Arm,OnBlock) ~>
+                move_to_table(Arm,OnBlock,BlockTab,BlockTab)
+    % OnBlock not needed by a task that can be helped,
+    % if uncovered move to BlockTab
+
+    on(OnBlock,Block) while_not_until not holding(Arm,OnBlock) ~>
+            unpile_C(Arm,OnBlock,BlockTab,ToTab)
+    % Otherwise co-operatively unpile OnBlock to make it clear
+    }
+
+rel needed_by_task_using(block,table,?loc)
+needed_by_task_using(OnBlock,Tab,Loc) <=
+    % Another task can be helped putting OnBlock on Loc on Tab
+    task_(_,makeTower(_,BlocksList,Tab)) &
+    BlocksList =? _ <> [OnBlock] <> Blocks &
+    % The above splits BlockList at OnBlock if this block is on BlockList
+    % with Blocks the sub-list below Block. It fails if Block not on BlockList
+    Loc = location_for_the_removed_block(Blocks,Tab)
+    % Makes Loc the top block of Blocks if Blocks is a tower, else Loc=Tab
+
+fun location_for_the_removed_block(list(block),table) -> loc
+location_for_the_removed_block([TopBlock,..MoreBlocks],Tab) ::
+      tower([TopBlock,..MoreBlocks],Tab) -> TopBlock
+location_for_the_removed_block(_,Tab) -> Tab
+
+tel move_to_location(arm,block,table,loc,table)
+move_to_location(Arm,OnBlock,BlockTab,Loc,ToTab){
+    Loc=ToTab ~>
+        move_to_table(Arm,OnBlock,BlockTab,ToTab)
+    type(Loc,block) ~>
+        move_to_block(Arm,OnBlock,BlockTab,Loc,ToTab)
+    }
+
+def task_desc ::= task_data(atom, arm, list(block), table)
+
+act go()
+go() :: Tasks = [task_data(t1, arm1, [4,3,2], table1),
+                 task_data(t2, arm1, [6,1,5], table1)]
+        ~>
+        start_agent(vrep_pedro@localhost, updates);
+        forall T
+               {T in Tasks ~> T to vrep_pedro@localhost} ;
+        forall Task,Arm, Tower,Table
+               {task_data(Task, Arm, Tower, Table) in Tasks  ~>
+                    start_task(Task, makeTower(Arm, Tower, Table))}
