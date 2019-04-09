@@ -5,7 +5,7 @@ import threading
 import time
 import numpy as np
 import functions as f
-
+#TODO define slots position, create data structure for object in scene,
 
 class Control(object):
     def __init__(self, host, port, sleep_time):
