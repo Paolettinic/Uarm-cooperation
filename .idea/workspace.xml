@@ -1,14 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ChangeListManager">
-    <list default="true" id="b92f2669-307e-4082-bae8-9dea66239560" name="Default Changelist" comment="">
-      <change afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/AI/robot_ai.qlg" beforeDir="false" afterPath="$PROJECT_DIR$/AI/robot_ai.qlg" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/RobotControl/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/RobotControl/__init__.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/RobotControl/pedro_controller.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/RobotModel/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/RobotModel/__init__.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/functions.py" beforeDir="false" afterPath="$PROJECT_DIR$/functions.py" afterDir="false" />
+    <list default="true" id="b92f2669-307e-4082-bae8-9dea66239560" name="Default Changelist" comment="pedroclient updated">
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/pedroclient.py" beforeDir="false" afterPath="$PROJECT_DIR$/pedroclient.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/scene/Uarm.ttt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/scene/Uarm_double.ttt" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/scene/Uarm_double_renamed.ttt" beforeDir="false" afterPath="$PROJECT_DIR$/scene/Uarm_double_renamed.ttt" afterDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
@@ -40,7 +37,7 @@
           </provider>
         </entry>
       </file>
-      <file pinned="false" current-in-tab="true">
+      <file pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/README.md">
           <provider selected="true" editor-type-id="split-provider[text-editor;markdown-preview-editor]">
             <state split_layout="SPLIT">
@@ -48,6 +45,18 @@
                 <caret line="35" column="17" selection-start-line="35" selection-start-column="17" selection-end-line="35" selection-end-column="17" />
               </first_editor>
               <second_editor />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file pinned="false" current-in-tab="true">
+        <entry file="file://$PROJECT_DIR$/pedroclient.py">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="536">
+              <caret line="888" selection-start-line="888" selection-end-line="888" />
+              <folding>
+                <element signature="e#1095#1131#0" expanded="true" />
+              </folding>
             </state>
           </provider>
         </entry>
@@ -77,17 +86,7 @@
         <option value="$PROJECT_DIR$/functions.py" />
         <option value="$PROJECT_DIR$/.gitignore" />
         <option value="$PROJECT_DIR$/README.md" />
-      </list>
-    </option>
-  </component>
-  <component name="ProjectConfigurationFiles">
-    <option name="files">
-      <list>
-        <option value="$PROJECT_DIR$/.idea/Uarm-cooperation.iml" />
-        <option value="$PROJECT_DIR$/.idea/misc.xml" />
-        <option value="$PROJECT_DIR$/.idea/vcs.xml" />
-        <option value="$PROJECT_DIR$/.idea/modules.xml" />
-        <option value="$PROJECT_DIR$/.idea/dictionaries/nico.xml" />
+        <option value="$PROJECT_DIR$/pedroclient.py" />
       </list>
     </option>
   </component>
@@ -123,6 +122,11 @@
               <item name="Uarm-cooperation" type="462c0819:PsiDirectoryNode" />
               <item name="RobotModel" type="462c0819:PsiDirectoryNode" />
             </path>
+            <path>
+              <item name="Uarm-cooperation" type="b2602c69:ProjectViewProjectNode" />
+              <item name="Uarm-cooperation" type="462c0819:PsiDirectoryNode" />
+              <item name="scene" type="462c0819:PsiDirectoryNode" />
+            </path>
           </expand>
           <select />
         </subPane>
@@ -132,7 +136,12 @@
   <component name="PropertiesComponent">
     <property name="ASKED_SHARE_PROJECT_CONFIGURATION_FILES" value="true" />
     <property name="SHARE_PROJECT_CONFIGURATION_FILES" value="true" />
-    <property name="last_opened_file_path" value="$PROJECT_DIR$" />
+    <property name="last_opened_file_path" value="$PROJECT_DIR$/scene" />
+  </component>
+  <component name="RecentsManager">
+    <key name="CopyFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/scene" />
+    </key>
   </component>
   <component name="RunDashboard">
     <option name="ruleStates">
@@ -164,7 +173,14 @@
       <option name="project" value="LOCAL" />
       <updated>1554820981377</updated>
     </task>
-    <option name="localTasksCounter" value="2" />
+    <task id="LOCAL-00002" summary="Finished messages, TODO: check state and send it as soon as it changes">
+      <created>1557159240311</created>
+      <option name="number" value="00002" />
+      <option name="presentableId" value="LOCAL-00002" />
+      <option name="project" value="LOCAL" />
+      <updated>1557159240311</updated>
+    </task>
+    <option name="localTasksCounter" value="3" />
     <servers />
   </component>
   <component name="ToolWindowManager">
@@ -192,7 +208,8 @@
   </component>
   <component name="VcsManagerConfiguration">
     <MESSAGE value="TODO ADDED" />
-    <option name="LAST_COMMIT_MESSAGE" value="TODO ADDED" />
+    <MESSAGE value="Finished messages, TODO: check state and send it as soon as it changes" />
+    <option name="LAST_COMMIT_MESSAGE" value="Finished messages, TODO: check state and send it as soon as it changes" />
   </component>
   <component name="editorHistoryManager">
     <entry file="file://$PROJECT_DIR$/RobotControl/pedro_controller.py" />
@@ -237,6 +254,16 @@
             <caret line="35" column="17" selection-start-line="35" selection-start-column="17" selection-end-line="35" selection-end-column="17" />
           </first_editor>
           <second_editor />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/pedroclient.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="536">
+          <caret line="888" selection-start-line="888" selection-end-line="888" />
+          <folding>
+            <element signature="e#1095#1131#0" expanded="true" />
+          </folding>
         </state>
       </provider>
     </entry>

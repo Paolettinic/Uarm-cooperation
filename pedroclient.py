@@ -542,7 +542,7 @@ class PedroParser:
             if (self.curr_token[0] != 'eos'):
                 raise ParseError(self.pos)
             return t
-        except ParseError as e:
+        except ParseError(e):
             print("Parse error at position", e.pos)
             return None
 
