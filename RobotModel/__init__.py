@@ -1,19 +1,23 @@
 from pyrep import VRep
 from pyrep.vrep import vrep as v
-import functions
 import numpy as np
 import threading
+import functions as f
 
-class RobotState():
+class RobotState:
     def __init__(self):
-        self.env = []
-        self.Moving = False
-        self.isHolding = False
-        self.nextEFPosition = (0,0,0)
+        self.block_env = []
+        self.Moving: bool = False
+        self.isHolding: int = 0
+        self.lastHeld: int = 1
+        self.nextEFPosition = (0, 0, 0)
+        self.overHome = True
         self.goingToSharedSpace = False
+        self.table_env = []  # Only contains free slots
+        self.shared_env = []  # Only contains free slots
 
 
-class RobotModel ():
+class RobotModel:
     def __init__(self, name: str, api: VRep):
         self._api = api
         self._name = name
@@ -21,8 +25,9 @@ class RobotModel ():
         self._actuators = None
         self._state = None
 
-    def process_commands(self,cmd):
+    def process_commands(self, cmd):
         pass
+
 
 class Uarm(RobotModel):
     def __init__(self, name, api):
@@ -32,8 +37,8 @@ class Uarm(RobotModel):
         self._baseSize = 106.5
         self._arm1 = 149.7
         self._arm2 = 160.1
-        self._endEffectorDisplacement = (0 , -25, 0)
-        self._thethaDisplacementRad = (0, -19.3*np.pi/180, -4*np.pi/180)
+        self._endEffectorDisplacement = (0, -25, 0)
+        self._thetaDisplacementRad = (0, -19.3*np.pi/180, -4*np.pi/180)
         self._state = RobotState()
         self._actuators['base_motor'] = api.joint.with_position_control(name+"_motor1")
         self._actuators['first_motor'] = api.joint.with_position_control(name+"_motor2")
@@ -45,43 +50,124 @@ class Uarm(RobotModel):
 
         self._cameraResX = 128
         self._cameraResY = 128
+        self._table_slots = []
+        self._shared_slots = []
 
-        self.setStartingPosition()
+        if self._name == "uarmL":
+            self._table_slots = [
+                (0, 225),
+                (-74, 225),
+                (-153, 225),
+                (-223, 225)
+            ]
+            self._shared_slots = [
+                (74, 225),
+                (149, 225),
+                (223, 225),
+            ]
+        else:
+            self._table_slots = [
+                (0, 225),
+                (74, 225),
+                (149, 225),
+                (223, 225),
+            ]
+            self._shared_slots = [
+                (-74, 225),
+                (-153, 225),
+                (-223, 225)
+            ]
 
-    def setStartingPosition(self):
-        return
+    def set_state_env(self, object_list):
+        self._state.block_env = object_list
 
-    def setStateEnv(self,object_list):
-        self._state.env = object_list
+    def set_holding(self, is_holding):
+        self._state.isHolding = is_holding
 
-    def setHolding(self,isHolding):
-        self._state.isHolding = isHolding
+    def is_moving(self):
+        return self._state.Moving
 
-    def getSizes(self):
-        return self._baseSize, self._arm1, self._arm2, self._endEffectorDisplacement, self._thethaDisplacementRad
+    def set_tracking(self,tracking):
+        self._state.Moving = tracking
 
-    def placeAoverB(self,baseA,baseB): #TODO: implement
-        pass
+    def set_over_home(self,isOverHome):
+        self._state.overHome = isOverHome
 
-    def unpile(self,twr): #TODO: implement
-        pass
+    def is_holding(self):
+        return self._state.isHolding
 
-    def placeEnd(self, coordinates: tuple):
+    def get_sizes(self):
+        return self._baseSize, self._arm1, self._arm2, self._endEffectorDisplacement, self._thetaDisplacementRad
+
+    def go_home(self):
+        self.place_end((530 / 2, 0, 130))
+        self._state.overHome = True
+
+    # TR
+    def pickup(self, block,table):
+        self.set_tracking(True)
+        b_color = f.index_to_color(block)
+        if table == 'shared':
+            x, y, z = self._state.shared_env[b_color]
+            self.set_over_home(False)
+        else:
+            self.set_over_home(True)
+            x, y, z = self._state.block_env[b_color]
+        scheme = [0, -11, 61, 115]
+        self.place_end((int(x), int(y), 130))
+        self.place_end((int(x), int(y), scheme[z]))
+        self.enable_suction()
+        self.place_end((int(x), int(y), 130))
+        self.go_home()
+        self.set_holding(block)
+
+
+    def put_on_block(self,block,table):
+        b_color = f.index_to_color(block)
+        if table == 'shared':
+            x, y, z = self._state.shared_env[b_color]
+            self.set_over_home(False)
+        else:
+            self.set_over_home(True)
+            x, y, z = self._state.block_env[b_color]
+        scheme = [0, -11, 61, 115]
+        self.place_end((int(x), int(y), 180))
+        self.place_end((int(x), int(y), scheme[z]+50))
+        self.disableSuction()
+        self.place_end((int(x), int(y), 180))
+        self.go_home()
+        self.set_tracking(False)
+        self.set_holding(0)
+
+    def put_on_table(self,table):
+        if table == 'shared':
+            self.set_over_home(False)
+            x, y = self._state.shared_env.pop(0)  # Use the first free slot and removes it, as it will no longer be free
+        else:
+            self.set_over_home(True)
+            x, y = self._state.table_env.pop(0)  # Use the first free slot and removes it, as it will no longer be free
+        self.place_end((x, y, 130))
+        self.place_end((x, y, 0))
+        self.disableSuction()
+        self.place_end((x, y, 130))
+        self.go_home()
+        self.set_holding(0)
+        self.set_over_home(True)
+
+
+    def place_end(self, coordinates: tuple):
         x, y, z = coordinates
-        theta = functions.getMotorsTetha(self, x, y, z)
+        theta = self.get_motors_theta(x, y, z)
         self._state.Moving = True
-        self.rotateMotors(*theta)
-        #self.signal.set()
+        self.rotate_motors(*theta)
 
-    def rotateMotors(self, theta1, theta2, theta3 ):
+    def rotate_motors(self, theta1, theta2, theta3):
         self._state.Moving = True
 
-        t1 = int(theta1 * 100) / 100
-        t2 = int(theta2 * 100) / 100
-        t3 = int(theta3 * 100) / 100
-        print("theta1  ", t1,
-              "theta2  ", t2,
-              "theta3  ", t3)
+        t1: float = int(theta1 * 100) / 100
+        t2: float = int(theta2 * 100) / 100
+        t3: float = int(theta3 * 100) / 100
+
         self._actuators['base_motor'].set_target_position(theta1)
         self._actuators['first_motor'].set_target_position(theta2)
         self._actuators['second_motor'].set_target_position(theta3)
@@ -90,34 +176,64 @@ class Uarm(RobotModel):
         post2 = int(self._actuators['first_motor'].get_position() * 100) / 100
         post3 = int(self._actuators['second_motor'].get_position() * 100) / 100
 
-        while(t1 != post1 or t2 != post2 or t3 != post3): #
+        while t1 != post1 or t2 != post2 or t3 != post3:
             post1 = int(self._actuators['base_motor'].get_position() * 100) / 100
             post2 = int(self._actuators['first_motor'].get_position() * 100) / 100
             post3 = int(self._actuators['second_motor'].get_position() * 100) / 100
-            print("theta1  ", t1,
-                  "theta2  ", t2,
-                  "theta3  ", t3)
-            print("post1  ", post1,
-                  "post2  ", post2,
-                  "post3  ", post3)
-        print("FINISHED MOVING")
+
+        #print("FINISHED MOVING")
         self._state.Moving = False
 
-    def enableSuction(self):
+    def get_motors_theta(self, x: float, y: float, z: float):
+        """"
+        Inverse kinematics function for Uarm
+        :param x: x position of the destination
+        :param y: y position of the destination
+        :param z: z position of the destination
+        :return: tuple(theta1,theta2,theta3) Rotation of each motor to bring the end effector in the desired position
+        """
+
+        arcos = np.arccos
+        atan = np.arctan2
+        sqrt = np.sqrt
+        # arms dimensions and end effector displacement
+
+        a1, a2, a3, displacement, theta_displacement = self.get_sizes()
+        dx, dy, dz = displacement
+        nx = x
+        ny = y
+        nz = z + dz
+
+        theta1 = atan(ny, nx)
+        r1 = sqrt(ny ** 2 + nx ** 2) + dy
+        FOR = 42 * np.pi / 180
+        FOL = 25 * np.pi / 180
+        s2h2 = r1 ** 2 + nz ** 2
+        angleA = arcos((a2 ** 2 + a3 ** 2 - s2h2) / (2 * a2 * a3))
+        angleB = np.arctan2(nz, r1)
+        angleC = arcos((a2 ** 2 + s2h2 - a3 ** 2) / (2 * a2 * np.sqrt(s2h2)))
+        theta3 = np.pi - angleA - angleB - angleC + FOR
+        theta2 = angleB + angleC + FOL
+
+        # print("theta1 ", abs(theta1), "| theta2 ", theta2, "| theta3 ", theta3)
+
+        return abs(theta1), theta2, theta3
+
+    def enable_suction(self):
         self._state.pickedUp = True
-        self.setIntegerSignal(self._suctionHandler,1)
+        self.setIntegerSignal(self._suctionHandler, 1)
 
     def disableSuction(self):
         self.setIntegerSignal(self._suctionHandler, 0)
 
     def getState(self):
-        with self._state as state:
-            return {
-                "is_moving":state.Moving,
-                "is_holding":state.isHolding if state.isHolding else "nothing",
-                "next_position":state.nextEFPosition,
-                "going_to_shared":state.goingToSharedSpace
-            }
+        s = {}
+
+        s["tracking"]= self._state.Moving
+        s["holding"]= self._state.isHolding
+        s["last_held"]= self._state.lastHeld
+        s["over_home"] = self._state.overHome
+        return s
 
     def get_percepts(self):
         """
@@ -126,39 +242,142 @@ class Uarm(RobotModel):
                 (color, x_position, y_position, width, height):
         """
 
-        #value gathered from the filters
+        # value gathered from the filters
         codeTop, stateTop, imageTop = self._sensors["cameraTop"].read()
         codeFront, stateFront, imageFront = self._sensors["cameraFront"].read()
         img = self._sensors["cameraTop"].raw_image()
         rawTop = np.array(img, dtype=np.uint8)
-        rawTop.resize(128,128,3)
+        rawTop.resize((128, 128, 3))
 
         rawFront = np.array(self._sensors["cameraFront"].raw_image(), dtype=np.uint8)
-        rawFront.resize(128, 128, 3)
-        object_list = functions.readVisionData(imageTop, imageFront,rawTop ,rawFront)
-        self._state.env = object_list
+        rawFront.resize((128, 128, 3))
+        object_list = self.readVisionData(imageTop, imageFront, rawTop, rawFront)
+        self._state.block_env = object_list
+        self._state.table_env = self.getFreeSlots(object_list, self._table_slots)
+        self._state.shared_env = self.getFreeSlots(object_list, self._shared_slots)
         return object_list
 
+    def readVisionData(self, imageTop, imageFront, rawTop, rawFront):
+        blob_countTop = int(imageTop[1][0])
+        # print(blob_countTop)
 
+        blob_countFront = int(imageFront[1][0])
+        # print(blob_countFront)
+        vCntTop = int(imageTop[1][1])
+        vCntFront = int(imageFront[1][1])
+        blob_info_top = imageTop[1]
+        blob_info_front = imageFront[1]
+
+        RAD_2 = np.sqrt(2)
+
+        object_list = {}
+        cubes_top = {}
+        cubes = []
+
+        for i in range(0, blob_countTop):
+            orientation = blob_info_top[3 + (vCntTop * i)]
+            posx = blob_info_top[3 + (vCntTop * i) + 1]
+            posy = blob_info_top[3 + (vCntTop * i) + 2]
+            width = blob_info_top[3 + (vCntTop * i) + 3]
+            height = blob_info_top[3 + (vCntTop * i) + 4]
+
+            if width >= 0.13:
+                if height >= 0.13:
+                    border_color = f.getColorName(*f.readImagesColor(rawTop, posy + height / 2 - 1, posx + width / 2 - 1))
+                    if border_color == "grey":
+                        newx = posx - width / 4
+                        newy = posy + height / 2 - width / 4
+                        cubes_top.update(f.assignCoordinateToColor(rawTop, newx, newy))
+                        newx = posx + width / 4
+                        newy = posy - height / 2 + width / 4
+                        cubes_top.update(f.assignCoordinateToColor(rawTop, newx, newy))
+                else:
+                    if orientation < -0.1:
+                        newx = posx - height / (2 * RAD_2)
+                        newy = posy + width / (4 * RAD_2)
+                        cubes_top.update(f.assignCoordinateToColor(rawTop, newx, newy))
+                        newx = posx + height / (2 * RAD_2)
+                        newy = posy - width / (4 * RAD_2)
+                        cubes_top.update(f.assignCoordinateToColor(rawTop, newx, newy))
+                    else:
+                        newx = posx - width / 4
+                        cubes_top.update(f.assignCoordinateToColor(rawTop, newx, posy))
+                        newx = posx + width / 4
+                        cubes_top.update(f.assignCoordinateToColor(rawTop, newx, posy))
+            else:
+                if height >= 0.13:
+                    if orientation < -0.1:
+                        newx = posx - width / (2 * RAD_2)
+                        newy = posy - height / (4 * RAD_2)
+                        cubes_top.update(f.assignCoordinateToColor(rawTop, newx, newy))
+                        newx = posx + width / (2 * RAD_2)
+                        newy = posy + height / (4 * RAD_2)
+                        cubes_top.update(f.assignCoordinateToColor(rawTop, newx, newy))
+
+                    else:
+                        newy = posy + height / 4
+                        cubes_top.update(f.assignCoordinateToColor(rawTop, posx, newy))
+                        newy = posy - height / 4
+                        cubes_top.update(f.assignCoordinateToColor(rawTop, posx, newy))
+                else:
+                    cubes_top.update(f.assignCoordinateToColor(rawTop, posx, posy))
+        # print(cubes_top)
+        for i in range(0, blob_countFront):
+            posx = blob_info_front[3 + (vCntFront * i) + 1]
+            posy = blob_info_front[3 + (vCntFront * i) + 2]
+            width = blob_info_front[3 + (vCntFront * i) + 3]
+            height = blob_info_front[3 + (vCntFront * i) + 4]
+            levels = round(height / width)
+            if levels == 1:
+                color = f.getColorName(*f.readImagesColor(rawFront, posy, posx))
+                x, y = cubes_top[color]
+                object_list.update({color: (x, y, 1)})
+            else:
+                first_block_z = posy + (height * (levels - 1)) / (2 * levels)
+                color = f.getColorName(*f.readImagesColor(rawFront, first_block_z, posx))
+                x, y = cubes_top[color]
+                for j in range(0, levels):
+                    color = f.getColorName(*f.readImagesColor(rawFront, first_block_z - ((height / levels) * j), posx))
+                    object_list.update({color: (x, y, levels - j)})
+        # print(object_list)
+        return object_list
+
+    def getFreeSlots(self, object_list: dict, slots):
+        free_slots = []
+        for x, y in slots:
+            found = False
+            for color, (px, py, pz) in object_list.items():
+                if found:
+                    break
+                if x + 5 >= px >= x - 5 and y + 5 >= py >= y - 5:
+                    found = True
+            if not found:
+                free_slots.append((x, y))
+        return free_slots
 
     def process_commands(self, commands):
         for cmd in commands:
-            self.invoke(cmd['cmd'], cmd['args'])
+            if cmd is not None:
+                self.invoke(cmd['cmd'], cmd['args'])
 
     def invoke(self, cmd, args):
         print('invoke', cmd, args)
         if cmd != 'illegal_command':
+            if args[0] != self._name:
+                return
+            else:
+                args.pop(0)
             try:
                 getattr(self.__class__, cmd)(self, *args)
             except AttributeError:
                 raise NotImplementedError("Class `{}` does not implement `{}`".format(self.__class__.__name__, cmd))
 
-    def setIntegerSignal(self,name: str,value: int):
-        v.simxSetIntegerSignal(self._api._id,name, value,v.simx_opmode_oneshot)
+    def setIntegerSignal(self, name: str, value: int):
+        v.simxSetIntegerSignal(self._api._id, name, value,v.simx_opmode_oneshot)
 
 
 class RobotTask(threading.Thread):
-    def __init__(self,robot: RobotModel,cmd):
+    def __init__(self, robot: RobotModel, cmd):
         threading.Thread.__init__(self)
         self.cmd = cmd
         self.robot = robot
