@@ -1,8 +1,10 @@
 from pyrep import VRep
 from pyrep.vrep import vrep as v
+import RobotControl
 import numpy as np
 import threading
 import functions as f
+
 
 class RobotState:
     def __init__(self):
@@ -18,9 +20,10 @@ class RobotState:
 
 
 class RobotModel:
-    def __init__(self, name: str, api: VRep):
+    def __init__(self, name: str, api: VRep, controller: RobotControl):
         self._api = api
         self._name = name
+        self._controller = controller
         self._sensors = None
         self._actuators = None
         self._state = None
@@ -30,8 +33,8 @@ class RobotModel:
 
 
 class Uarm(RobotModel):
-    def __init__(self, name, api):
-        RobotModel.__init__(self, name, api)
+    def __init__(self, name, api, controller ):
+        RobotModel.__init__(self, name, api,controller)
         self._actuators = {}
         self._sensors = {}
         self._baseSize = 106.5
@@ -47,7 +50,7 @@ class Uarm(RobotModel):
         self._suctionHandler = name+"_suctionCup"
         self._sensors['cameraTop'] = api.sensor.vision(name+"_visionSensorTop")
         self._sensors['cameraFront'] = api.sensor.vision(name+"_visionSensorFront")
-
+        self._homePosition = (530 / 2, 0, 130) if self._name == "uarmR" else (-530 / 2, 0, 130)
         self._cameraResX = 128
         self._cameraResY = 128
         self._table_slots = []
@@ -84,7 +87,7 @@ class Uarm(RobotModel):
     def set_holding(self, is_holding):
         self._state.isHolding = is_holding
 
-    def is_moving(self):
+    def is_tracking(self):
         return self._state.Moving
 
     def set_tracking(self,tracking):
@@ -93,36 +96,38 @@ class Uarm(RobotModel):
     def set_over_home(self,isOverHome):
         self._state.overHome = isOverHome
 
+    def set_last_held(self,last_held):
+        self._state.lastHeld = last_held
+
     def is_holding(self):
         return self._state.isHolding
 
     def get_sizes(self):
         return self._baseSize, self._arm1, self._arm2, self._endEffectorDisplacement, self._thetaDisplacementRad
 
+    # region Teleor
     def go_home(self):
-        self.place_end((530 / 2, 0, 130))
+        self.place_end(self._homePosition)
         self._state.overHome = True
 
-    # TR
     def pickup(self, block,table):
-        self.set_tracking(True)
         b_color = f.index_to_color(block)
         if table == 'shared':
             x, y, z = self._state.shared_env[b_color]
-            self.set_over_home(False)
         else:
-            self.set_over_home(True)
             x, y, z = self._state.block_env[b_color]
-        scheme = [0, -11, 61, 115]
+        scheme = [0, -10, 61, 115]
         self.place_end((int(x), int(y), 130))
         self.place_end((int(x), int(y), scheme[z]))
         self.enable_suction()
+        self.set_holding(block)
         self.place_end((int(x), int(y), 130))
         self.go_home()
-        self.set_holding(block)
+        self._controller.process_percepts()
 
 
-    def put_on_block(self,block,table):
+
+    def put_on_block(self, block, table):
         b_color = f.index_to_color(block)
         if table == 'shared':
             x, y, z = self._state.shared_env[b_color]
@@ -137,9 +142,11 @@ class Uarm(RobotModel):
         self.place_end((int(x), int(y), 180))
         self.go_home()
         self.set_tracking(False)
+        self.set_last_held(self.is_holding())
         self.set_holding(0)
+        self._controller.process_percepts()
 
-    def put_on_table(self,table):
+    def put_on_table(self, table):
         if table == 'shared':
             self.set_over_home(False)
             x, y = self._state.shared_env.pop(0)  # Use the first free slot and removes it, as it will no longer be free
@@ -151,12 +158,16 @@ class Uarm(RobotModel):
         self.disableSuction()
         self.place_end((x, y, 130))
         self.go_home()
+        self.set_last_held(self.is_holding())
         self.set_holding(0)
         self.set_over_home(True)
+        self._controller.process_percepts()
 
+    # endregion Teleor
 
     def place_end(self, coordinates: tuple):
         x, y, z = coordinates
+        print(coordinates)
         theta = self.get_motors_theta(x, y, z)
         self._state.Moving = True
         self.rotate_motors(*theta)
@@ -355,18 +366,16 @@ class Uarm(RobotModel):
                 free_slots.append((x, y))
         return free_slots
 
-    def process_commands(self, commands):
-        for cmd in commands:
-            if cmd is not None:
-                self.invoke(cmd['cmd'], cmd['args'])
+    def process_commands(self, cmd):
+        print(cmd)
+        if cmd is not None:
+            self.invoke(cmd['cmd'], cmd['args'])
 
     def invoke(self, cmd, args):
+        print(self._state.block_env)
+        print(self._name)
         print('invoke', cmd, args)
         if cmd != 'illegal_command':
-            if args[0] != self._name:
-                return
-            else:
-                args.pop(0)
             try:
                 getattr(self.__class__, cmd)(self, *args)
             except AttributeError:

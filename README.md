@@ -16,8 +16,8 @@ and actions are sent and received using Pedro.
 
         pedro -L stdout
 
-    to start Pedro server.
--   Start the simulation in Vrep
+    to start **Pedro** server.
+-   Start the simulation in **Vrep**
 -   In another terminal run:
         
         python3 robot_interface.py
@@ -30,7 +30,7 @@ and actions are sent and received using Pedro.
     
         teleor -Acontroller
        
-    to start the interpreter, registering an agent called 'controller'
+    to start the **Teleor** interpreter, registering an agent called _'controller'_
 -   In the interpreter:
 
         [robot_ai].
