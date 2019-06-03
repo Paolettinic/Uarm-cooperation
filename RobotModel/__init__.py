@@ -8,7 +8,7 @@ import functions as f
 
 class RobotState:
     def __init__(self):
-        self.block_env = []
+        self.block_env = {}
         self.Moving: bool = False
         self.isHolding: int = 0
         self.lastHeld: int = 1
@@ -50,13 +50,13 @@ class Uarm(RobotModel):
         self._suctionHandler = name+"_suctionCup"
         self._sensors['cameraTop'] = api.sensor.vision(name+"_visionSensorTop")
         self._sensors['cameraFront'] = api.sensor.vision(name+"_visionSensorFront")
-        self._homePosition = (530 / 2, 0, 130) if self._name == "uarmR" else (-530 / 2, 0, 130)
+        self._homePosition = (-530 / 2, 0, 130) if self._name == "uarmL" else (530 / 2, 0, 130)
         self._cameraResX = 128
         self._cameraResY = 128
         self._table_slots = []
         self._shared_slots = []
 
-        if self._name == "uarmL":
+        if self._name == "arm1":
             self._table_slots = [
                 (0, 225),
                 (-74, 225),
@@ -76,9 +76,9 @@ class Uarm(RobotModel):
                 (223, 225),
             ]
             self._shared_slots = [
-                (-74, 225),
-                (-153, 225),
-                (-223, 225)
+                (75, 225),
+                (153, 225),
+                (223, 225)
             ]
 
     def set_state_env(self, object_list):
@@ -111,6 +111,11 @@ class Uarm(RobotModel):
         self._state.overHome = True
 
     def pickup(self, block,table):
+        name = 'arm1' if self._name == 'uarmR' else 'arm2'
+        print("block env: ",self._state.block_env)
+        sv = f.getSimplifiedVision(self._state.block_env, name)
+        msg = []
+        self._controller.send_percept(['r_(tracking({}))'.format(name)])
         b_color = f.index_to_color(block)
         if table == 'shared':
             x, y, z = self._state.shared_env[b_color]
@@ -118,28 +123,46 @@ class Uarm(RobotModel):
             x, y, z = self._state.block_env[b_color]
         scheme = [0, -10, 61, 115]
         self.place_end((int(x), int(y), 130))
+        self._controller.send_percept(['f_(tracking({}))'.format(name)])
         self.place_end((int(x), int(y), scheme[z]))
         self.enable_suction()
+        msg.append('r_(holding({},{})'.format(name,block))
+        if sv[block] == 'table':
+            msg.append('f_(on_table({},{})'.format(block,table))
+            # TODO: controllare se gli slot liberi si aggiornano automaticamente come dovrebbero
+            #   altrimenti inserisci:
+            #   self._table_slots.append((int(x), int(y))
         self.set_holding(block)
+        self._controller.send_percept(msg)
         self.place_end((int(x), int(y), 130))
+        self._controller.send_percept(['r_(tracking()'.format(name)])
         self.go_home()
+        self._controller.send_percept(['f_(tracking()'.format(name)])
         self._controller.process_percepts()
 
 
 
     def put_on_block(self, block, table):
+        name = 'arm1' if self._name == 'uarmR' else 'arm2'
+        holding = self.is_holding()
+        self._controller.send_percept(['r_(tracking({}))'.format(name)])
         b_color = f.index_to_color(block)
         if table == 'shared':
             x, y, z = self._state.shared_env[b_color]
             self.set_over_home(False)
+            self._controller.send_percept(['f_(over_home({}))'.format(name)])
         else:
             self.set_over_home(True)
+            self._controller.send_percept(['r_(over_home({}))'.format(name)])
             x, y, z = self._state.block_env[b_color]
         scheme = [0, -11, 61, 115]
         self.place_end((int(x), int(y), 180))
+        self._controller.send_percept(['f_(tracking({}))'.format(name)])
         self.place_end((int(x), int(y), scheme[z]+50))
         self.disableSuction()
+        self._controller.send_percept(['f_(holding({},{}))'.format(name,holding),'r_(on({},{}))'.format(holding,block)])
         self.place_end((int(x), int(y), 180))
+        self._controller.send_percept(['r_(tracking({}))'.format(name)])
         self.go_home()
         self.set_tracking(False)
         self.set_last_held(self.is_holding())
@@ -147,16 +170,24 @@ class Uarm(RobotModel):
         self._controller.process_percepts()
 
     def put_on_table(self, table):
+        name = 'arm1' if self._name == 'uarmR' else 'arm2'
+        holding = self.is_holding()
+        self._controller.send_percept(['r_(tracking({}))'.format(name)])
         if table == 'shared':
             self.set_over_home(False)
+            self._controller.send_percept(['f_(over_home({}))'.format(name)])
             x, y = self._state.shared_env.pop(0)  # Use the first free slot and removes it, as it will no longer be free
         else:
             self.set_over_home(True)
+            self._controller.send_percept(['r_(over_home({}))'.format(name)])
             x, y = self._state.table_env.pop(0)  # Use the first free slot and removes it, as it will no longer be free
         self.place_end((x, y, 130))
+        self._controller.send_percept(['f_(tracking({}))'.format(name)])
         self.place_end((x, y, 0))
         self.disableSuction()
+        self._controller.send_percept(['f_(holding({},{}))'.format(name, holding), 'r_(on_table({},{}))'.format(holding, table)])
         self.place_end((x, y, 130))
+        self._controller.send_percept(['r_(tracking({}))'.format(name)])
         self.go_home()
         self.set_last_held(self.is_holding())
         self.set_holding(0)
@@ -195,6 +226,46 @@ class Uarm(RobotModel):
         #print("FINISHED MOVING")
         self._state.Moving = False
 
+
+    def enable_suction(self):
+        self._state.pickedUp = True
+        self.setIntegerSignal(self._suctionHandler, 1)
+
+    def disableSuction(self):
+        self.setIntegerSignal(self._suctionHandler, 0)
+
+    def getState(self):
+        s = {}
+
+        s["tracking"]= self._state.Moving
+        s["holding"]= self._state.isHolding
+        s["last_held"]= self._state.lastHeld
+        s["over_home"] = self._state.overHome
+        return s
+
+    # region Percept
+    def get_percepts(self):
+        """
+        Reads the top and front Vision Sensors.
+        :return array containing, for each detected blob
+                (color, x_position, y_position, width, height):
+        """
+
+        # value gathered from the filters
+        codeTop, stateTop, imageTop = self._sensors["cameraTop"].read()
+        codeFront, stateFront, imageFront = self._sensors["cameraFront"].read()
+        img = self._sensors["cameraTop"].raw_image()
+        rawTop = np.array(img, dtype=np.uint8)
+        rawTop.resize((128, 128, 3))
+
+        rawFront = np.array(self._sensors["cameraFront"].raw_image(), dtype=np.uint8)
+        rawFront.resize((128, 128, 3))
+        object_list = self.readVisionData(imageTop, imageFront, rawTop, rawFront)
+        self._state.block_env = object_list
+        self._state.table_env = self.getFreeSlots(object_list, self._table_slots)
+        self._state.shared_env = self.getFreeSlots(object_list, self._shared_slots)
+        return object_list
+
     def get_motors_theta(self, x: float, y: float, z: float):
         """"
         Inverse kinematics function for Uarm
@@ -229,44 +300,6 @@ class Uarm(RobotModel):
         # print("theta1 ", abs(theta1), "| theta2 ", theta2, "| theta3 ", theta3)
 
         return abs(theta1), theta2, theta3
-
-    def enable_suction(self):
-        self._state.pickedUp = True
-        self.setIntegerSignal(self._suctionHandler, 1)
-
-    def disableSuction(self):
-        self.setIntegerSignal(self._suctionHandler, 0)
-
-    def getState(self):
-        s = {}
-
-        s["tracking"]= self._state.Moving
-        s["holding"]= self._state.isHolding
-        s["last_held"]= self._state.lastHeld
-        s["over_home"] = self._state.overHome
-        return s
-
-    def get_percepts(self):
-        """
-        Reads the top and front Vision Sensors.
-        :return array containing, for each detected blob
-                (color, x_position, y_position, width, height):
-        """
-
-        # value gathered from the filters
-        codeTop, stateTop, imageTop = self._sensors["cameraTop"].read()
-        codeFront, stateFront, imageFront = self._sensors["cameraFront"].read()
-        img = self._sensors["cameraTop"].raw_image()
-        rawTop = np.array(img, dtype=np.uint8)
-        rawTop.resize((128, 128, 3))
-
-        rawFront = np.array(self._sensors["cameraFront"].raw_image(), dtype=np.uint8)
-        rawFront.resize((128, 128, 3))
-        object_list = self.readVisionData(imageTop, imageFront, rawTop, rawFront)
-        self._state.block_env = object_list
-        self._state.table_env = self.getFreeSlots(object_list, self._table_slots)
-        self._state.shared_env = self.getFreeSlots(object_list, self._shared_slots)
-        return object_list
 
     def readVisionData(self, imageTop, imageFront, rawTop, rawFront):
         blob_countTop = int(imageTop[1][0])
@@ -352,6 +385,7 @@ class Uarm(RobotModel):
                     object_list.update({color: (x, y, levels - j)})
         # print(object_list)
         return object_list
+    # endregion Percepts
 
     def getFreeSlots(self, object_list: dict, slots):
         free_slots = []

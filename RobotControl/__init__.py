@@ -16,14 +16,9 @@ class Control(object):
         except:
             print('V-REP not responding')
             exit(-1)
-        self.robotL, self.robotR = self.make_robot(self._api)
         self._api.simulation.start()
 
     def run(self):
-        mv = f.getMergedVision(
-            self.robotL.get_percepts(),
-            self.robotR.get_percepts()
-        )
         while True:
             pass
 
@@ -76,15 +71,15 @@ class PedroControl(Control):
         self._tr_client_addr = 0
 
     def make_robot(self, api,) -> (Uarm, Uarm):
-        return Uarm('uarmL', api, self), Uarm('uarmR', api, self)
+        return Uarm('uarmR', api, self), Uarm('uarmL', api, self)
 
     def get_perc(self):
-        block_perceptL = self.robotL.get_percepts()
-        block_perceptR = self.robotR.get_percepts()
-        merged_vision = f.getMergedVision(block_perceptL, block_perceptR)
-        arm_statusL = self.robotL.getState()
-        arm_statusR = self.robotR.getState()
-        return merged_vision, arm_statusL, arm_statusR
+        block_percept1 = self.robot1.get_percepts()
+        block_percept2 = self.robot2.get_percepts()
+        merged_vision = f.getMergedVision(block_percept1, block_percept2)
+        arm_status1 = self.robot1.getState()
+        arm_status2 = self.robot2.getState()
+        return merged_vision, arm_status1, arm_status2
 
     # RECEIVE
     def set_client(self, addr):
@@ -92,12 +87,11 @@ class PedroControl(Control):
 
     def process_initialize(self):
         # Block until message arrives
-        self.robotL, self.robotR = self.make_robot(self._api)
+        self.robot1, self.robot2 = self.make_robot(self._api)
         self.process_percepts()
 
 
     def action_to_command(self, a) -> RobotTask:
-        cmd_type = a.functor.val
         cmd = a.args[0]
         command = ""
         if cmd.functor.val == "pickup":
@@ -107,10 +101,10 @@ class PedroControl(Control):
         if cmd.functor.val == "put_on_block":
             command = {'cmd': cmd.functor.val, 'args': [cmd.args[1].val, cmd.args[2].val]}
         print("FIRST ARG: {}".format(cmd.args[0]))
-        if str(cmd.args[0]) == "uarmL":
-            return RobotTask(self.robotL,command)
+        if str(cmd.args[0]) == "arm1":
+            return RobotTask(self.robot1,command)
         else:
-            return RobotTask(self.robotR, command)
+            return RobotTask(self.robot2, command)
 
     def get_commands(self):
         p2pmsg = self.queue.get()
@@ -133,16 +127,16 @@ class PedroControl(Control):
     # SEND
     def process_percepts(self):
         msg = []
-        merged_vision, arm_statusL, arm_statusR = self.get_perc()
-        if not arm_statusL['holding'] == 0:
-            msg.append('r_(holding(uarmL, {0}))'.format(arm_statusL['holding']))
+        merged_vision, arm1_status, arm2_status = self.get_perc()
+        if not arm1_status['holding'] == 0:
+            msg.append('r_(holding(arm1, {0}))'.format(arm1_status['holding']))
         else:
-            msg.append('f_(holding(uarmL, {0}))'.format(arm_statusL["last_held"]))
+            msg.append('f_(holding(arm1, {0}))'.format(arm1_status["last_held"]))
 
-        if not arm_statusR['holding'] == 0:
-            msg.append('r_(holding(uarmR, {0}))'.format(arm_statusR['holding']))
+        if not arm2_status['holding'] == 0:
+            msg.append('r_(holding(arm2, {0}))'.format(arm2_status['holding']))
         else:
-            msg.append('f_(holding(uarmR, {0}))'.format(arm_statusR["last_held"]))
+            msg.append('f_(holding(arm2, {0}))'.format(arm2_status["last_held"]))
 
         for on, under in merged_vision.items():
             if not under in ['table1', 'shared', 'table2']:
@@ -150,24 +144,24 @@ class PedroControl(Control):
             else:
                 msg.append('r_(on_table({0},{1}))'.format(on, under))
 
-        if not arm_statusL['over_home']:
-            msg.append('f_(over_home(uarmL))')
+        if not arm1_status['over_home']:
+            msg.append('f_(over_home(arm1))')
         else:
-            msg.append('r_(over_home(uarmL))')
+            msg.append('r_(over_home(arm1))')
 
-        if not arm_statusR['over_home']:
-            msg.append('f_(over_home(uarmR))')
+        if not arm2_status['over_home']:
+            msg.append('f_(over_home(arm2))')
         else:
-            msg.append('r_(over_home(uarmR))')
+            msg.append('r_(over_home(arm2))')
 
-        if not arm_statusL['tracking']:
-            msg.append('f_(tracking(uarmL))')
+        if not arm1_status['tracking']:
+            msg.append('f_(tracking(arm1))')
         else:
-            msg.append('r_(tracking(uarmL))')
-        if not arm_statusR['tracking']:
-            msg.append('f_(tracking(uarmR))')
+            msg.append('r_(tracking(arm1))')
+        if not arm2_status['tracking']:
+            msg.append('f_(tracking(arm2))')
         else:
-            msg.append('r_(tracking(uarmR))')
+            msg.append('r_(tracking(arm2))')
         print(msg)
         self.send_percept(msg)
 

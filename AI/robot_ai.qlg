@@ -29,15 +29,15 @@
 % In the simulation press the space bar and then drag blocks around - press
 % the space again to continue.
 
-def arm ::= uarmL | uarmR
+def arm ::= arm1 | arm2
 def table ::= table1 | shared | table2
 def block ::= (1 .. 6)
 
 def loc == table || block
 
 fun other(arm) -> arm
-other(uarmL) -> uarmR
-other(uarmR) -> uarmL
+other(arm1) -> arm2
+other(arm2) -> arm1
 
 percept holding(arm, block), on(block, block),
     on_table(block,table), over_home(arm), tracking(arm)
@@ -68,8 +68,8 @@ stack([B], T) :: on_table(B,T)
 stack([B1,B2|Bs], T) :: on(B1, B2) & stack([B2|Bs], T)
 
 fun home_table(arm) -> table
-home_table(uarmL) -> table1
-home_table(uarmR) -> table2
+home_table(arm1) -> table1
+home_table(arm2) -> table2
 
 rel can_reach_block(arm,block,?table)
 can_reach_block(Arm,Block,Tab) <=
@@ -262,8 +262,8 @@ move_to_location(Arm,OnBlock,BlockTab,Loc,ToTab){
 def task_desc ::= task_data(atom, arm, list(block), table)
 
 act go()
-go() :: Tasks = [task_data(t1, uarmL, [4,3,2], table1),
-                 task_data(t2, uarmR, [6,1,5], table2)]
+go() :: Tasks = [task_data(t1, arm1, [4,3,2], table1),
+                 task_data(t2, arm2, [6,1,5], table2)]
         ~>
         start_agent(vrep_pedro@localhost, updates);
         forall T

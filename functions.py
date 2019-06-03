@@ -61,24 +61,38 @@ def readImagesColor( image, y, x):
         i += 1
     return red, green, blue
 
-def getMergedVision(listL: dict, listR: dict):
+def getSimplifiedVision(list: dict, arm):
     cubes = {}
-    wListL = listL
-    wListR = listR
-    for key, (x, y, z) in wListL.items():
+    wList = list
+    print("LIST:",list)
+    for key, (x,y,z) in wList.items():
         if z > 1:
-            for keyL, (xc, yc, zc) in listL.items():
+            for keyl, (xc, yc, zc) in list.items():
                 if xc == x and yc == y and zc == z - 1:
-                    cubes.update({color_to_index(key): color_to_index(keyL)})
+                    cubes.update({color_to_index(key): color_to_index(keyl)})
         else:
-            c = wListR.pop(key, None)  # removing the item from right view in order to avoid checking shared cubes in next iteration
+            if arm == 'arm1':
+                cubes.update({color_to_index(key): 0})
+    return cubes
+
+def getMergedVision(list1: dict, list2: dict):
+    cubes = {}
+    wList1 = list1
+    wList2 = list2
+    for key, (x, y, z) in wList1.items():
+        if z > 1:
+            for key1, (xc, yc, zc) in list1.items():
+                if xc == x and yc == y and zc == z - 1:
+                    cubes.update({color_to_index(key): color_to_index(key1)})
+        else:
+            c = wList2.pop(key, None)  # removing the item from right view in order to avoid checking shared cubes in next iteration
             if c is not None:
                 cubes.update({color_to_index(key): 'shared'})
             else:
                 cubes.update({color_to_index(key): 'table1'})
-    for key, (x, y, z) in wListR.items():
+    for key, (x, y, z) in wList2.items():
         if z > 1:
-            for keyR, (xc, yc, zc) in listR.items():
+            for keyR, (xc, yc, zc) in list2.items():
                 if xc == x and yc == y and zc == z - 1:
                     cubes.update({color_to_index(key): color_to_index(keyR)})
         else:
