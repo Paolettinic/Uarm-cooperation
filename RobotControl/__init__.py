@@ -5,7 +5,6 @@ import threading
 import time
 import functions as f
 
-
 class Control(object):
     def __init__(self, host, port, sleep_time):
         self._host = host
@@ -21,7 +20,6 @@ class Control(object):
     def run(self):
         while True:
             pass
-
 
     def make_robot(self, api) -> tuple:
         return None, None
@@ -118,8 +116,12 @@ class PedroControl(Control):
             self.process_initialize()
         if msg.get_type() == pedroclient.PObject.listtype:
             for a in actions.toList():
+                print(a)
                 if a.functor.val == 'start_':
-                    self.action_to_command(a).start()
+                    t = self.action_to_command(a)
+                    t.start()
+                    t.join()
+                    print("--------finished task-------")
                 else:
                     pass
 

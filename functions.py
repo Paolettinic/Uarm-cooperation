@@ -71,8 +71,7 @@ def getSimplifiedVision(list: dict, arm):
                 if xc == x and yc == y and zc == z - 1:
                     cubes.update({color_to_index(key): color_to_index(keyl)})
         else:
-            if arm == 'arm1':
-                cubes.update({color_to_index(key): 0})
+            cubes.update({color_to_index(key): 0})
     return cubes
 
 def getMergedVision(list1: dict, list2: dict):
