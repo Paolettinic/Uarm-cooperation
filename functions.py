@@ -3,12 +3,12 @@ import numpy as np
 def index_to_color(index):
     scheme = [
         0,
-        "purple",   # 1
-        "cyan",     # 2
-        "red",      # 3
-        "green",    # 4
-        "blue",     # 5
-        "yellow"    # 6
+        "purple",   # 1 -> C
+        "cyan",     # 2 -> A
+        "red",      # 3 -> I
+        "green",    # 4 -> N
+        "blue",     # 5 -> O
+        "yellow"    # 6 -> P
     ]
     return scheme[index]
 

@@ -125,7 +125,7 @@ class Uarm(RobotModel):
         msg = []
         b_color = f.index_to_color(block)
         x, y, z = self._state.block_env[b_color]
-        scheme = [0, -10, 61, 115]
+        scheme = [0,0, 61, 115]
         self.place_end((int(x), int(y), 140))
         self._controller.send_percept(['f_(tracking({}))'.format(name)])
         self.place_end((int(x), int(y), scheme[z]))
@@ -160,10 +160,10 @@ class Uarm(RobotModel):
             self.set_over_home(True)
             self._controller.send_percept(['r_(over_home({}))'.format(name)])
             x, y, z = self._state.block_env[b_color]
-        scheme = [0, -11, 61, 115]
+        scheme = [0, 61, 115]
         self.place_end((int(x), int(y), 180))
         self._controller.send_percept(['f_(tracking({}))'.format(name)])
-        self.place_end((int(x), int(y), scheme[z]+55))
+        self.place_end((int(x), int(y), scheme[z]))
         self.disableSuction()
         self._controller.send_percept(['f_(holding({},{}))'.format(name,holding),'r_(on({},{}))'.format(holding,block)])
         self.place_end((int(x), int(y), 180))

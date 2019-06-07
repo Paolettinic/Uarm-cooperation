@@ -18,8 +18,8 @@
       <file pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/functions.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="212">
-              <caret line="88" column="76" selection-start-line="88" selection-start-column="76" selection-end-line="88" selection-end-column="76" />
+            <state relative-caret-position="150">
+              <caret line="10" column="28" selection-start-line="10" selection-start-column="28" selection-end-line="10" selection-end-column="28" />
             </state>
           </provider>
         </entry>
@@ -27,8 +27,8 @@
       <file pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/RobotControl/__init__.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="340">
-              <caret line="75" column="37" lean-forward="true" selection-start-line="75" selection-start-column="37" selection-end-line="75" selection-end-column="37" />
+            <state relative-caret-position="555">
+              <caret line="37" column="16" selection-start-line="37" selection-start-column="16" selection-end-line="37" selection-end-column="16" />
               <folding>
                 <element signature="e#0#44#0" expanded="true" />
               </folding>
@@ -48,8 +48,8 @@
       <file pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/RobotModel/__init__.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="421">
-              <caret line="304" column="38" selection-start-line="304" selection-start-column="38" selection-end-line="304" selection-end-column="38" />
+            <state relative-caret-position="213">
+              <caret line="162" column="19" selection-start-line="162" selection-start-column="19" selection-end-line="162" selection-end-column="19" />
               <folding>
                 <element signature="e#0#22#0" expanded="true" />
               </folding>
@@ -61,8 +61,6 @@
   </component>
   <component name="FindInProjectRecents">
     <findStrings>
-      <find>is_hol</find>
-      <find>process_percepts</find>
       <find>p2pmsg</find>
       <find>send_percept</find>
       <find>table</find>
@@ -91,6 +89,8 @@
       <find>_state.block_env</find>
       <find>get_perc</find>
       <find>print(</find>
+      <find>put on</find>
+      <find>scheme</find>
     </findStrings>
   </component>
   <component name="Git.Settings">
@@ -103,14 +103,13 @@
         <option value="$PROJECT_DIR$/pedroclient.py" />
         <option value="$PROJECT_DIR$/robot_interface.py" />
         <option value="$PROJECT_DIR$/README.md" />
-        <option value="$PROJECT_DIR$/RobotControl/__init__.py" />
         <option value="$PROJECT_DIR$/RobotModel/__init__.py" />
+        <option value="$PROJECT_DIR$/RobotControl/__init__.py" />
         <option value="$PROJECT_DIR$/functions.py" />
       </list>
     </option>
   </component>
   <component name="ProjectFrameBounds">
-    <option name="x" value="-4" />
     <option name="width" value="964" />
     <option name="height" value="1080" />
   </component>
@@ -250,19 +249,33 @@
       <option name="project" value="LOCAL" />
       <updated>1559837720622</updated>
     </task>
-    <option name="localTasksCounter" value="6" />
+    <task id="LOCAL-00006" summary="PRIMA VERSIONE FUNZIONANTE in modalità non cooperativa (single thread) &#10;Risolti vari errori sulle percept,">
+      <created>1559902526236</created>
+      <option name="number" value="00006" />
+      <option name="presentableId" value="LOCAL-00006" />
+      <option name="project" value="LOCAL" />
+      <updated>1559902526237</updated>
+    </task>
+    <task id="LOCAL-00007" summary="updated scene">
+      <created>1559902894587</created>
+      <option name="number" value="00007" />
+      <option name="presentableId" value="LOCAL-00007" />
+      <option name="project" value="LOCAL" />
+      <updated>1559902894587</updated>
+    </task>
+    <option name="localTasksCounter" value="8" />
     <servers />
   </component>
   <component name="ToolWindowManager">
-    <frame x="-4" y="0" width="964" height="1080" extended-state="0" />
+    <frame x="0" y="0" width="964" height="1080" extended-state="0" />
     <editor active="true" />
     <layout>
-      <window_info content_ui="combo" id="Project" order="0" visible="true" weight="0.24866024" />
+      <window_info active="true" content_ui="combo" id="Project" order="0" visible="true" weight="0.24866024" />
       <window_info id="Structure" order="1" side_tool="true" weight="0.25" />
       <window_info id="Favorites" order="2" side_tool="true" />
       <window_info anchor="bottom" id="Message" order="0" />
       <window_info anchor="bottom" id="Find" order="1" weight="0.32921812" />
-      <window_info anchor="bottom" auto_hide="true" x="4" y="569" width="956" height="507" id="Run" order="2" type="WINDOWED" visible="true" weight="0.6885246" />
+      <window_info anchor="bottom" auto_hide="true" x="4" y="569" width="956" height="503" id="Run" order="2" type="WINDOWED" visible="true" weight="0.6885246" />
       <window_info anchor="bottom" id="Debug" order="3" weight="0.4" />
       <window_info anchor="bottom" id="Cvs" order="4" weight="0.25" />
       <window_info anchor="bottom" id="Inspection" order="5" weight="0.4" />
@@ -270,7 +283,7 @@
       <window_info anchor="bottom" id="Version Control" order="7" />
       <window_info anchor="bottom" id="Terminal" order="8" weight="0.0968421" />
       <window_info anchor="bottom" id="Event Log" order="9" side_tool="true" weight="0.329718" />
-      <window_info active="true" anchor="bottom" id="Python Console" order="10" visible="true" weight="0.53790987" />
+      <window_info anchor="bottom" id="Python Console" order="10" weight="0.537037" />
       <window_info anchor="bottom" id="Messages" order="11" />
       <window_info anchor="right" id="Commander" internal_type="SLIDING" order="0" type="SLIDING" weight="0.4" />
       <window_info anchor="right" id="Ant Build" order="1" weight="0.25" />
@@ -293,7 +306,9 @@
     <MESSAGE value="pedroclient updated, scene updated" />
     <MESSAGE value="Aggiunto invio delle update nei metodi pickup, puto_on_block, put_on_table.&#10;Persistente errore TELEOR." />
     <MESSAGE value="Modalità non cooperativa (single thread) &#10;Errore teleor, :(" />
-    <option name="LAST_COMMIT_MESSAGE" value="Modalità non cooperativa (single thread) &#10;Errore teleor, :(" />
+    <MESSAGE value="PRIMA VERSIONE FUNZIONANTE in modalità non cooperativa (single thread) &#10;Risolti vari errori sulle percept," />
+    <MESSAGE value="updated scene" />
+    <option name="LAST_COMMIT_MESSAGE" value="updated scene" />
   </component>
   <component name="editorHistoryManager">
     <entry file="file://$PROJECT_DIR$/RobotControl/pedro_controller.py" />
@@ -322,17 +337,17 @@
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/README.md">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="390">
+          <caret line="26" column="47" lean-forward="true" selection-start-line="26" selection-start-column="47" selection-end-line="26" selection-end-column="47" />
+        </state>
+      </provider>
       <provider editor-type-id="split-provider[text-editor;markdown-preview-editor]">
         <state split_layout="SPLIT">
           <first_editor relative-caret-position="480">
             <caret line="32" column="27" selection-start-line="32" selection-start-column="27" selection-end-line="32" selection-end-column="27" />
           </first_editor>
           <second_editor />
-        </state>
-      </provider>
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="390">
-          <caret line="26" column="47" lean-forward="true" selection-start-line="26" selection-start-column="47" selection-end-line="26" selection-end-column="47" />
         </state>
       </provider>
     </entry>
@@ -346,8 +361,8 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/RobotModel/__init__.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="421">
-          <caret line="304" column="38" selection-start-line="304" selection-start-column="38" selection-end-line="304" selection-end-column="38" />
+        <state relative-caret-position="213">
+          <caret line="162" column="19" selection-start-line="162" selection-start-column="19" selection-end-line="162" selection-end-column="19" />
           <folding>
             <element signature="e#0#22#0" expanded="true" />
           </folding>
@@ -356,8 +371,8 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/RobotControl/__init__.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="340">
-          <caret line="75" column="37" lean-forward="true" selection-start-line="75" selection-start-column="37" selection-end-line="75" selection-end-column="37" />
+        <state relative-caret-position="555">
+          <caret line="37" column="16" selection-start-line="37" selection-start-column="16" selection-end-line="37" selection-end-column="16" />
           <folding>
             <element signature="e#0#44#0" expanded="true" />
           </folding>
@@ -366,8 +381,8 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/functions.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="212">
-          <caret line="88" column="76" selection-start-line="88" selection-start-column="76" selection-end-line="88" selection-end-column="76" />
+        <state relative-caret-position="150">
+          <caret line="10" column="28" selection-start-line="10" selection-start-column="28" selection-end-line="10" selection-end-column="28" />
         </state>
       </provider>
     </entry>

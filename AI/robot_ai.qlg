@@ -262,8 +262,8 @@ move_to_location(Arm,OnBlock,BlockTab,Loc,ToTab){
 def task_desc ::= task_data(atom, arm, list(block), table)
 
 act go()
-go() :: Tasks = [task_data(t1, arm1, [4,3,2], table1),
-                 task_data(t2, arm2, [6,1,5], table2)]
+go() :: Tasks = [task_data(t1, arm1, [4,3,1], table1),
+                 task_data(t2, arm2, [6,2,5], table2)]
         ~>
         start_agent(vrep_pedro@localhost, updates);
         forall T

@@ -19,7 +19,11 @@ class Control(object):
 
     def run(self):
         while True:
-            time.sleep(0.5)
+            thread_pool = self.get_commands()
+            for t in thread_pool:
+                t.start()
+            for t in thread_pool:
+                t.join()
 
     def make_robot(self, api) -> tuple:
         return None, None
@@ -30,8 +34,8 @@ class Control(object):
     def process_percepts(self):
         pass
 
-    def get_commands(self):
-        pass
+    def get_commands(self) -> [threading.Thread]:
+        return []
 
     def send_percept(self, percepts_string):
         pass
@@ -51,7 +55,9 @@ class MessageThread(threading.Thread):
         while self.running:
             p2pmsg = self.client.get_term()[0]
             self.queue.put(p2pmsg)
-            self.pedrocontrol.get_commands()
+            #self.pedrocontrol.get_commands()
+
+
 
     def stop(self):
         self.running = False
@@ -103,10 +109,11 @@ class PedroControl(Control):
         else:
             return RobotTask(self.robot2, command)
 
-    def get_commands(self):
+    def get_commands(self) -> [threading.Thread]:
         p2pmsg = self.queue.get()
         msg = p2pmsg.args[2]
         actions = msg
+        thread_pool = []
         if str(msg) == 'initialise_':
             print("initialized")
             percepts_addr = p2pmsg.args[1]
@@ -116,11 +123,11 @@ class PedroControl(Control):
             for a in actions.toList():
                 if a.functor.val == 'start_':
                     t = self.action_to_command(a)
-                    t.start()
-                    t.join()
-                    print("--------finished task-------{}".format(t.name))
+                    thread_pool.append(t)
                 else:
                     pass
+        return thread_pool
+
 
 
     # SEND
