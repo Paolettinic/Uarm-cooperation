@@ -113,10 +113,10 @@ class Uarm(RobotModel):
 
     def pickup(self, block,table):
         self._controller.process_percepts()
-        #print("SHARED ENV", self._state.shared_env)
         name = 'arm1' if self._name == 'uarmR' else 'arm2'
-        #print("block env: ",self._state.block_env)
+        print("Block ENV: {}".format(self._state.block_env))
         sv = f.getSimplifiedVision(self._state.block_env, name)
+        print("SIMPLIFIED VISION {}: {}".format(self._name,sv))
         msg = []
         msg.append('r_(tracking({}))'.format(name))
         if table == 'shared':
@@ -131,11 +131,9 @@ class Uarm(RobotModel):
         self.place_end((int(x), int(y), scheme[z]))
         self.enable_suction()
         msg.append('r_(holding({},{}))'.format(name,block))
-        print("simplified vision {}".format(sv))
-        if sv[block] == 'table':
+
+        if sv[block] == 0:
             msg.append('f_(on_table({},{}))'.format(block,table))
-            # TODO: controllare se gli slot liberi si aggiornano automaticamente come dovrebbero
-            #   altrimenti inserisci:
             self._table_slots.append((int(x), int(y)))
         else:
             msg.append('f_(on({},{}))'.format(block, sv[block]))
@@ -207,7 +205,6 @@ class Uarm(RobotModel):
 
     def place_end(self, coordinates: tuple):
         x, y, z = coordinates
-        #print(coordinates)
         theta = self.get_motors_theta(x, y, z)
         self._state.Moving = True
         self.rotate_motors(*theta)
@@ -228,12 +225,10 @@ class Uarm(RobotModel):
         post3 = int(self._actuators['second_motor'].get_position() * 100) / 100
 
         while not(post1 - 0.05 <= t1 <= post1+0.05) or not(post2 - 0.05 <= t2 <= post2+0.05) or not(post3 - 0.05 <= t3 <= post3+0.05):
-            # print("MOVING {}".format(self._name))
             post1 = int(self._actuators['base_motor'].get_position() * 100) / 100
             post2 = int(self._actuators['first_motor'].get_position() * 100) / 100
             post3 = int(self._actuators['second_motor'].get_position() * 100) / 100
         time.sleep(0.05)
-        # print("FINISHED MOVING {}".format(self._name))
         self._state.Moving = False
 
 
@@ -243,38 +238,6 @@ class Uarm(RobotModel):
 
     def disableSuction(self):
         self.setIntegerSignal(self._suctionHandler, 0)
-
-    def getState(self):
-        s = {}
-
-        s["tracking"]= self._state.Moving
-        s["holding"]= self._state.isHolding
-        s["last_held"]= self._state.lastHeld
-        s["over_home"] = self._state.overHome
-        return s
-
-    # region Percept
-    def get_percepts(self):
-        """
-        Reads the top and front Vision Sensors.
-        :return array containing, for each detected blob
-                (color, x_position, y_position, width, height):
-        """
-
-        # value gathered from the filters
-        codeTop, stateTop, imageTop = self._sensors["cameraTop"].read()
-        codeFront, stateFront, imageFront = self._sensors["cameraFront"].read()
-        img = self._sensors["cameraTop"].raw_image()
-        rawTop = np.array(img, dtype=np.uint8)
-        rawTop.resize((128, 128, 3))
-
-        rawFront = np.array(self._sensors["cameraFront"].raw_image(), dtype=np.uint8)
-        rawFront.resize((128, 128, 3))
-        object_list = self.readVisionData(imageTop, imageFront, rawTop, rawFront)
-        self._state.block_env = object_list
-        self._state.table_env = self.getFreeSlots(object_list, self._table_slots)
-        self._state.shared_env = self.getFreeSlots(object_list, self._shared_slots)
-        return object_list
 
     def get_motors_theta(self, x: float, y: float, z: float):
         """"
@@ -307,9 +270,43 @@ class Uarm(RobotModel):
         theta3 = np.pi - angleA - angleB - angleC + FOR
         theta2 = angleB + angleC + FOL
 
-        # print("theta1 ", abs(theta1), "| theta2 ", theta2, "| theta3 ", theta3)
-
         return abs(theta1), theta2, theta3
+
+
+    # region Percept
+
+    def getState(self):
+        s = {}
+
+        s["tracking"]= self._state.Moving
+        s["holding"]= self._state.isHolding
+        s["last_held"]= self._state.lastHeld
+        s["over_home"] = self._state.overHome
+        return s
+
+    def get_percepts(self):
+        """
+        Reads the top and front Vision Sensors.
+        :return array containing, for each detected blob
+                (color, x_position, y_position, width, height):
+        """
+
+        # value gathered from the filters
+        codeTop, stateTop, imageTop = self._sensors["cameraTop"].read()
+        codeFront, stateFront, imageFront = self._sensors["cameraFront"].read()
+        img = self._sensors["cameraTop"].raw_image()
+        rawTop = np.array(img, dtype=np.uint8)
+        rawTop.resize((128, 128, 3))
+
+        rawFront = np.array(self._sensors["cameraFront"].raw_image(), dtype=np.uint8)
+        rawFront.resize((128, 128, 3))
+        object_list = self.readVisionData(imageTop, imageFront, rawTop, rawFront)
+        print("OBJECT LIST: {}".format(object_list))
+        self.set_state_env(object_list)
+        print("------self.state.blockenv: {}".format(self._state.block_env))
+        self._state.table_env = self.getFreeSlots(object_list, self._table_slots)
+        self._state.shared_env = self.getFreeSlots(object_list, self._shared_slots)
+        return object_list
 
     def readVisionData(self, imageTop, imageFront, rawTop, rawFront):
         blob_countTop = int(imageTop[1][0])
@@ -374,7 +371,6 @@ class Uarm(RobotModel):
                 else:
                     cubes_top.update(f.assignCoordinateToColor(rawTop, posx, posy))
         for i in range(0, blob_countFront):
-            print(i)
             posx = blob_info_front[2 + (vCntFront * i) + 2]
             posy = blob_info_front[2 + (vCntFront * i) + 3]
             width = blob_info_front[2 + (vCntFront * i) + 4]
@@ -393,7 +389,7 @@ class Uarm(RobotModel):
                 for j in range(0, levels):
                     color = f.getColorName(*f.readImagesColor(rawFront, first_block_z - ((height / levels) * j), posx))
                     object_list.update({color: (x, y, levels - j)})
-        # print(object_list)
+        print("VISION: {}".format(object_list))
         return object_list
     # endregion Percepts
 
@@ -408,18 +404,13 @@ class Uarm(RobotModel):
                     found = True
             if not found:
                 free_slots.append((x, y))
-        #print("freeslot--{}--: {}".format(self._name,free_slots))
         return free_slots
 
     def process_commands(self, cmd):
-        #print(cmd)
         if cmd is not None:
             self.invoke(cmd['cmd'], cmd['args'])
 
     def invoke(self, cmd, args):
-        #print(self._state.block_env)
-        #print(self._state.table_env)
-        #print(self._name)
         print('invoke', cmd, args)
         if cmd != 'illegal_command':
             try:

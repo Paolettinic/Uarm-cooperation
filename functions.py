@@ -64,7 +64,6 @@ def readImagesColor( image, y, x):
 def getSimplifiedVision(list: dict, arm):
     cubes = {}
     wList = list
-    print("LIST:",list)
     for key, (x,y,z) in wList.items():
         if z > 1:
             for keyl, (xc, yc, zc) in list.items():
@@ -76,8 +75,9 @@ def getSimplifiedVision(list: dict, arm):
 
 def getMergedVision(list1: dict, list2: dict):
     cubes = {}
-    wList1 = list1
-    wList2 = list2
+    wList1 = list1.copy()
+    wList2 = list2.copy()
+
     for key, (x, y, z) in wList1.items():
         if z > 1:
             for key1, (xc, yc, zc) in list1.items():
@@ -86,6 +86,7 @@ def getMergedVision(list1: dict, list2: dict):
         else:
             c = wList2.pop(key, None)  # removing the item from right view in order to avoid checking shared cubes in next iteration
             if c is not None:
+                print("removed ({},key: {}) from {}".format(c, key, wList2))
                 cubes.update({color_to_index(key): 'shared'})
             else:
                 cubes.update({color_to_index(key): 'table1'})

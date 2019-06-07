@@ -19,7 +19,7 @@ class Control(object):
 
     def run(self):
         while True:
-            pass
+            time.sleep(0.5)
 
     def make_robot(self, api) -> tuple:
         return None, None
@@ -50,7 +50,6 @@ class MessageThread(threading.Thread):
     def run(self):
         while self.running:
             p2pmsg = self.client.get_term()[0]
-            # print("-----------P2P MESSAGE_",p2pmsg)
             self.queue.put(p2pmsg)
             self.pedrocontrol.get_commands()
 
@@ -98,7 +97,7 @@ class PedroControl(Control):
             command = {'cmd': cmd.functor.val, 'args': [cmd.args[1].val]}
         if cmd.functor.val == "put_on_block":
             command = {'cmd': cmd.functor.val, 'args': [cmd.args[1].val, cmd.args[2].val]}
-        print("FIRST ARG: {}".format(cmd.args[0]))
+        print(cmd)
         if str(cmd.args[0]) == "arm1":
             return RobotTask(self.robot1,command)
         else:
@@ -106,7 +105,6 @@ class PedroControl(Control):
 
     def get_commands(self):
         p2pmsg = self.queue.get()
-        # print("P2PMSG=", p2pmsg)
         msg = p2pmsg.args[2]
         actions = msg
         if str(msg) == 'initialise_':
@@ -116,12 +114,11 @@ class PedroControl(Control):
             self.process_initialize()
         if msg.get_type() == pedroclient.PObject.listtype:
             for a in actions.toList():
-                print(a)
                 if a.functor.val == 'start_':
                     t = self.action_to_command(a)
                     t.start()
                     t.join()
-                    print("--------finished task-------")
+                    print("--------finished task-------{}".format(t.name))
                 else:
                     pass
 
@@ -169,7 +166,7 @@ class PedroControl(Control):
 
     def send_percept(self, percept):
         percepts_string = '[' + ','.join(percept) + ']'
-        print("send_percept", str(self.percepts_addr), percepts_string)
+        #print("send_percept", str(self.percepts_addr), percepts_string)
         if self.client.p2p(self.percepts_addr, percepts_string) == 0:
             print("Error", percepts_string)
 
